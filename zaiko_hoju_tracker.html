@@ -5,11 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>在庫補充トラッカー</title>
 <style>
-  :root{
-    --bg:#f5f6f8; --card:#ffffff; --line:#e3e6ea; --text:#1f2733; --muted:#6b7480;
-    --blue:#2f6fed; --green:#1aa260; --amber:#e08a00; --amber-bg:#fff7e6; --red:#d23f3f;
-    --gray-bg:#f0f1f3;
-  }
+  :root{--bg:#f5f6f8;--card:#fff;--line:#e3e6ea;--text:#1f2733;--muted:#6b7480;--blue:#2f6fed;--green:#1aa260;--amber:#e08a00;--amber-bg:#fff7e6;--red:#d23f3f;--gray-bg:#f0f1f3;}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
   .wrap{max-width:1240px;margin:0 auto;padding:24px 18px 60px}
@@ -19,50 +15,45 @@
   .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:120px}
   .stat .n{font-size:22px;font-weight:700}
   .stat .l{font-size:12px;color:var(--muted)}
-  .stat.amber .n{color:var(--amber)} .stat.green .n{color:var(--green)} .stat.gray .n{color:var(--muted)}
+  .stat.amber .n{color:var(--amber)}.stat.green .n{color:var(--green)}.stat.gray .n{color:var(--muted)}
   .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
   .btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
   .legend{font-size:12px;color:var(--muted);margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
   .legend span{display:inline-flex;align-items:center;gap:5px}
   .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-  .dot.g{background:var(--green)} .dot.a{background:var(--amber)} .dot.s{background:#aab1ba}
+  .dot.g{background:var(--green)}.dot.a{background:var(--amber)}.dot.s{background:#aab1ba}
   .tablecard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   table{width:100%;border-collapse:collapse}
-  th,td{padding:12px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  th,td{padding:12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
   th{background:#fafbfc;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
   tr:last-child td{border-bottom:none}
   tr.pending{background:var(--amber-bg)}
   tr.skipped{background:var(--gray-bg);color:var(--muted)}
   .title{font-weight:600;max-width:260px}
   .title a{color:var(--blue);text-decoration:none}
-  .title .meta{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+  .meta{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
   a.src{color:var(--blue);text-decoration:none;font-size:12px;word-break:break-all}
   .price{font-weight:600;white-space:nowrap}
-  .diff .yen{font-weight:700}
-  .diff .pct{font-size:12px;display:inline-block;margin-top:2px;padding:1px 7px;border-radius:10px;background:#eef1f4;color:var(--muted)}
-  .diff .pct.over{background:#fde7e7;color:var(--red);font-weight:700}
+  .yen{font-weight:700}
+  .pct{font-size:12px;display:inline-block;margin-top:2px;padding:1px 7px;border-radius:10px;background:#eef1f4;color:var(--muted)}
+  .pct.over{background:#fde7e7;color:var(--red);font-weight:700}
   .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
   .badge.listed{background:#e3f5ec;color:var(--green)}
   .badge.pending{background:#fff0d6;color:var(--amber)}
   .badge.skipped{background:#e9ebee;color:var(--muted)}
-  .chk{display:flex;align-items:center;gap:6px}
   .chk input{width:18px;height:18px;cursor:pointer;accent-color:var(--blue)}
-  .approve-on{color:var(--green);font-size:11px;font-weight:700}
+  .approve-on{color:var(--green);font-size:11px;font-weight:700;margin-left:6px}
   .note{font-size:11px;color:var(--muted);margin-top:6px}
   .muted{color:var(--muted)}
   .foot{margin-top:14px;font-size:12px;color:var(--muted)}
-  .sample-tag{font-size:10px;background:#eceff3;color:var(--muted);border-radius:4px;padding:1px 5px;margin-left:6px}
-  @media(max-width:760px){ th:nth-child(2),td:nth-child(2){display:none} }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>在庫補充トラッカー</h1>
-  <div class="sub">在庫切れ→新仕入先への差し替え内容を確認するための一覧。状態のチェックはこのブラウザに保存されます（再訪時も保持）。</div>
-
+  <div class="sub">在庫切れ→新仕入先への差し替え内容を確認するための一覧。チェック状態はこのブラウザに保存されます（再訪時も保持）。</div>
   <div class="cards" id="stats"></div>
-
   <div class="toolbar">
     <button class="btn" onclick="copyApproved()">承認済み（出品可）をコピー</button>
     <button class="btn ghost" onclick="location.reload()">再読み込み</button>
@@ -72,149 +63,107 @@
       <span><i class="dot s"></i>スキップ（仕入先なし）</span>
     </div>
   </div>
-
   <div class="tablecard">
     <table>
-      <thead>
-        <tr>
-          <th>商品（eBayページ）</th>
-          <th>元の仕入先 / 価格</th>
-          <th>新しい仕入先 / 価格</th>
-          <th>価格差（元−新）</th>
-          <th>ステータス</th>
-          <th>確認済み</th>
-          <th>出品許可<br><span style="font-weight:400">※10%以上のみ</span></th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>商品（eBayページ）</th>
+        <th>元の仕入先 / 価格</th>
+        <th>新しい仕入先 / 価格</th>
+        <th>価格差（元−新）</th>
+        <th>ステータス</th>
+        <th>確認済み</th>
+        <th>出品許可<br>※10%以上のみ</th>
+      </tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
-
-  <div class="foot">
-    ルール：価格差（元の仕入価格−新しい仕入価格）が<b>元価格の10%以上</b>の場合は自動出品せず「要承認」。<b>出品許可</b>にチェックが入った商品だけ出品します。新しい仕入先が見つからない商品は<b>スキップ</b>。通常（10%未満）の商品は出品後にこの一覧へ記録され、<b>確認済み</b>でレビュー完了とします。
-  </div>
+  <div class="foot">ルール：価格差（元の仕入価格−新しい仕入価格）が元価格の10%以上の場合は自動出品せず「要承認」。出品許可にチェックが入った商品だけ出品します。新しい仕入先が見つからない商品はスキップ。通常（10%未満）は出品後に記録し、確認済みでレビュー完了とします。</div>
 </div>
 
 <script>
-// ===== データ（在庫補充の記録）。自動化が1件ずつ追記していく想定 =====
-const items = [
-  {
-    id: "cinderella-20260603",
-    ebayTitle: "Japan Tokyo Disney Store Cinderella Pink Dress Figure CREATE YOUR DREAM 2025",
-    ebayUrl: "",                         // ← eBay商品ページURL（未取得。⑧で取得可）
-    origSite: "メルカリ", origUrl: "https://jp.mercari.com/item/m61190444552", origPrice: 15000,
-    newSite:  "ヤフオク", newUrl:  "https://auctions.yahoo.co.jp/jp/auction/k1177483858", newPrice: 13500,
-    status: "listed",                    // listed / pending / skipped
-    date: "2026-06-03",
-    note: "価格差10.0%（しきい値ちょうど）。本ルール導入前に出品済み。",
-    sample: false
-  },
-  {
-    id: "yugioh-exosister-20260603",
-    ebayTitle: "遊戯王 デラックスデュエルセット エクソシスター 未開封 (eBay: Deluxe Duel Set Exosister)",
-    ebayUrl: "https://www.ebay.com/itm/306950260590",
-    origSite: "メルカリ", origUrl: "https://jp.mercari.com/item/m78818568338", origPrice: 23333,
-    newSite:  "ラクマ",   newUrl: "https://item.fril.jp/a466bf12adc0121ad72e4b582b2fecd8", newPrice: 33000,
-    status: "pending",
-    date: "2026-06-03",
-    note: "新品。在庫ありはラクマのエクソシスターデュエルセット(ycsj限定)¥33,000のみ＝元より約41%高。メルカリ/ヤフオク/PayPay即決は在庫なし。",
-    sample: false
-  },
-  {
-    id: "railgun-misaka-20260603",
-    ebayTitle: "A Certain Scientific Railgun Mikoto Misaka 65cm 1/2.5 Figure Soft Bust KADOKAWA",
-    ebayUrl: "https://www.ebay.com/itm/306950193171",
-    origSite: "メルカリ", origUrl: "https://jp.mercari.com/item/m22089574880", origPrice: null,
-    newSite:  null, newUrl: "", newPrice: null,
-    status: "skipped",
-    date: "2026-06-03",
-    note: "Used。元出品は削除済みで元価格不明。即決の在庫なし。ヤフオクにオークション出品(全高約65cm 1/2.5 未使用 ¥209,800)はあるが即決対象外のためスキップ。",
-    sample: false
-  },
-  {
-    id: "fullscale-char-stahlhelm-20260603",
-    ebayTitle: "FULL SCALE WORKS Display Gundam 1/1 Char Aznable Stahlhelm Figure Megahouse",
-    ebayUrl: "https://www.ebay.com/itm/306931508363",
-    origSite: "PayPayフリマ", origUrl: "https://paypayfleamarket.yahoo.co.jp/item/z601242346", origPrice: 45000,
-    newSite:  "ラクマ", newUrl: "https://item.fril.jp/96a216345bd3ec5c6d0793949eb7f6a2", newPrice: 66000,
-    status: "pending",
-    date: "2026-06-03",
-    note: "Used。在庫ありはラクマのメガハウス1/1シュタールヘルム¥66,000＝元より約47%高。メルカリは3点セット(¥82,500)のみで単品一致なし。",
-    sample: false
-  }
+var items = [
+  {id:"cinderella-20260603", ebayTitle:"Japan Tokyo Disney Store Cinderella Pink Dress Figure CREATE YOUR DREAM 2025", ebayUrl:"", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m61190444552", origPrice:15000, newSite:"ヤフオク", newUrl:"https://auctions.yahoo.co.jp/jp/auction/k1177483858", newPrice:13500, status:"listed", note:"価格差10.0%（しきい値ちょうど）。本ルール導入前に出品済み。"},
+  {id:"yugioh-exosister-20260603", ebayTitle:"遊戯王 デラックスデュエルセット エクソシスター 未開封", ebayUrl:"https://www.ebay.com/itm/306950260590", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m78818568338", origPrice:23333, newSite:"ラクマ", newUrl:"https://item.fril.jp/a466bf12adc0121ad72e4b582b2fecd8", newPrice:33000, status:"pending", note:"新品。在庫ありはラクマのycsj限定セット¥33,000のみ＝元より約41%高。メルカリ/ヤフオク/PayPay即決は在庫なし。"},
+  {id:"railgun-misaka-20260603", ebayTitle:"A Certain Scientific Railgun Mikoto Misaka 65cm 1/2.5 Figure Soft Bust KADOKAWA", ebayUrl:"https://www.ebay.com/itm/306950193171", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m22089574880", origPrice:null, newSite:null, newUrl:"", newPrice:null, status:"skipped", note:"Used。元出品は削除済みで元価格不明。即決の在庫なし。ヤフオクにオークション出品(65cm 1/2.5 未使用 ¥209,800)はあるが即決対象外のためスキップ。"},
+  {id:"fullscale-char-stahlhelm-20260603", ebayTitle:"FULL SCALE WORKS Display Gundam 1/1 Char Aznable Stahlhelm Figure Megahouse", ebayUrl:"https://www.ebay.com/itm/306931508363", origSite:"PayPayフリマ", origUrl:"https://paypayfleamarket.yahoo.co.jp/item/z601242346", origPrice:45000, newSite:"ラクマ", newUrl:"https://item.fril.jp/96a216345bd3ec5c6d0793949eb7f6a2", newPrice:66000, status:"pending", note:"Used。在庫ありはラクマのメガハウス1/1シュタールヘルム¥66,000＝元より約47%高。メルカリは3点セット(¥82,500)のみで単品一致なし。"}
 ];
 
-const yen = n => (n==null ? "—" : "¥" + Number(n).toLocaleString("ja-JP"));
-const lsGet = (k) => localStorage.getItem(k) === "1";
-const lsSet = (k,v) => v ? localStorage.setItem(k,"1") : localStorage.removeItem(k);
-
-function diffInfo(it){
-  if(it.newPrice==null || it.origPrice==null) return {yenDiff:null, pct:null};
-  const d = it.origPrice - it.newPrice;
-  const pct = it.origPrice ? (d / it.origPrice * 100) : 0;
-  return {yenDiff:d, pct:pct};
-}
+function yen(n){ return (n==null) ? "—" : "¥" + Number(n).toLocaleString("ja-JP"); }
+function lsGet(k){ return localStorage.getItem(k)==="1"; }
+function lsSet(k,v){ if(v){ localStorage.setItem(k,"1"); } else { localStorage.removeItem(k); } }
+function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":s); return d.innerHTML; }
 
 function render(){
-  const tb = document.getElementById("rows");
+  var tb = document.getElementById("rows");
   tb.innerHTML = "";
-  let nListed=0, nPending=0, nSkipped=0;
+  var nL=0,nP=0,nS=0;
+  for(var i=0;i<items.length;i++){
+    var it = items[i];
+    var hasDiff = (it.newPrice!=null && it.origPrice!=null);
+    var diff = hasDiff ? (it.origPrice - it.newPrice) : null;
+    var pct = hasDiff && it.origPrice ? (diff/it.origPrice*100) : null;
+    var over = (pct!=null && Math.abs(pct)>=10);
+    if(it.status==="listed") nL++; else if(it.status==="pending") nP++; else nS++;
 
-  items.forEach(it=>{
-    const di = diffInfo(it);
-    const over = di.pct!=null && Math.abs(di.pct) >= 10;
-    if(it.status==="listed") nListed++;
-    else if(it.status==="pending") nPending++;
-    else if(it.status==="skipped") nSkipped++;
-
-    const tr = document.createElement("tr");
+    var tr = document.createElement("tr");
     tr.className = it.status;
 
-    // 商品
-    const titleHtml = it.ebayUrl
-      ? `<a href="${it.ebayUrl}" target="_blank" rel="noopener">${it.ebayTitle}</a>`
-      : `${it.ebayTitle}<div class="meta">eBayページURL未登録</div>`;
-    const sampleTag = it.sample ? `<span class="sample-tag">サンプル</span>` : "";
+    var titleH = it.ebayUrl ? '<a href="'+it.ebayUrl+'" target="_blank" rel="noopener">'+esc(it.ebayTitle)+'</a>'
+                            : esc(it.ebayTitle)+'<div class="meta">eBayページURL未登録</div>';
+    if(it.note){ titleH += '<div class="note">'+esc(it.note)+'</div>'; }
 
-    // 元 / 新 仕入先
-    const origCell = it.origUrl && it.origUrl!=="#"
-      ? `<div class="price">${yen(it.origPrice)}</div><a class="src" href="${it.origUrl}" target="_blank" rel="noopener">${it.origSite}</a>`
-      : `<div class="price">${yen(it.origPrice)}</div><span class="muted">${it.origSite||"—"}</span>`;
-    const newCell = it.newSite
-      ? (it.newUrl && it.newUrl!=="#"
-          ? `<div class="price">${yen(it.newPrice)}</div><a class="src" href="${it.newUrl}" target="_blank" rel="noopener">${it.newSite}</a>`
-          : `<div class="price">${yen(it.newPrice)}</div><span class="muted">${it.newSite}</span>`)
-      : `<span class="muted">見つからず</span>`;
+    var origH = '<div class="price">'+yen(it.origPrice)+'</div>';
+    origH += (it.origUrl && it.origUrl!=="#") ? '<a class="src" href="'+it.origUrl+'" target="_blank" rel="noopener">'+esc(it.origSite)+'</a>'
+                                              : '<span class="muted">'+esc(it.origSite||"—")+'</span>';
 
-    // 価格差
-    let diffCell = `<span class="muted">—</span>`;
-    if(di.yenDiff!=null){
-      diffCell = `<div class="diff"><span class="yen">${yen(di.yenDiff)}</span><br>
-        <span class="pct ${over?'over':''}">${di.pct.toFixed(1)}%${over?' ⚠':''}</span></div>`;
-    }
+    var newH;
+    if(it.newSite){
+      newH = '<div class="price">'+yen(it.newPrice)+'</div>';
+      newH += (it.newUrl && it.newUrl!=="#") ? '<a class="src" href="'+it.newUrl+'" target="_blank" rel="noopener">'+esc(it.newSite)+'</a>'
+                                             : '<span class="muted">'+esc(it.newSite)+'</span>';
+    } else { newH = '<span class="muted">見つからず</span>'; }
 
-    // ステータス
-    const badge = it.status==="listed" ? `<span class="badge listed">出品済み</span>`
-               : it.status==="pending" ? `<span class="badge pending">要承認</span>`
-               : `<span class="badge skipped">スキップ</span>`;
+    var diffH = '<span class="muted">—</span>';
+    if(diff!=null){ diffH = '<div><span class="yen">'+yen(diff)+'</span><br><span class="pct'+(over?' over':'')+'">'+pct.toFixed(1)+'%'+(over?' ⚠':'')+'</span></div>'; }
 
-    // 確認済み
-    let confirmCell = `<span class="muted">—</span>`;
+    var badgeH = it.status==="listed" ? '<span class="badge listed">出品済み</span>'
+               : it.status==="pending" ? '<span class="badge pending">要承認</span>'
+               : '<span class="badge skipped">スキップ</span>';
+
+    var confH = '<span class="muted">—</span>';
     if(it.status!=="skipped"){
-      const ck = "confirm_"+it.id;
-      confirmCell = `<label class="chk"><input type="checkbox" ${lsGet(ck)?"checked":""}
-         onchange="lsSet('${ck}', this.checked)"></label>`;
+      var ck="confirm_"+it.id;
+      confH = '<input type="checkbox" class="chk" '+(lsGet(ck)?"checked":"")+' onchange="lsSet(\''+ck+'\',this.checked)">';
     }
 
-    // 出品許可（pending のみ）
-    let approveCell = `<span class="muted">—</span>`;
+    var apH = '<span class="muted">—</span>';
     if(it.status==="pending"){
-      const ak = "approve_"+it.id;
-      const on = lsGet(ak);
-      approveCell = `<label class="chk"><input type="checkbox" ${on?"checked":""}
-         onchange="lsSet('${ak}', this.checked); this.nextElementSibling.style.display=this.checked?'inline':'none'">
-         <span class="approve-on" style="display:${on?'inline':'none'}">→出品可</span></label>`;
+      var ak="approve_"+it.id;
+      apH = '<input type="checkbox" '+(lsGet(ak)?"checked":"")+' onchange="onApprove(this,\''+ak+'\')"><span class="approve-on" style="display:'+(lsGet(ak)?"inline":"none")+'">→出品可</span>';
     }
 
-    tr.innerHTML = `
-      <td class="title">${titleHtml}${sampleTag}${it.note?`<div class="note">${it.note}
+    tr.innerHTML = '<td class="title">'+titleH+'</td><td>'+origH+'</td><td>'+newH+'</td><td>'+diffH+'</td><td>'+badgeH+'</td><td>'+confH+'</td><td>'+apH+'</td>';
+    tb.appendChild(tr);
+  }
+  document.getElementById("stats").innerHTML =
+    '<div class="stat"><div class="n">'+items.length+'</div><div class="l">総件数</div></div>'+
+    '<div class="stat green"><div class="n">'+nL+'</div><div class="l">出品済み</div></div>'+
+    '<div class="stat amber"><div class="n">'+nP+'</div><div class="l">要承認（10%以上）</div></div>'+
+    '<div class="stat gray"><div class="n">'+nS+'</div><div class="l">スキップ</div></div>';
+}
+
+function onApprove(el,key){ lsSet(key, el.checked); el.nextElementSibling.style.display = el.checked ? "inline" : "none"; }
+
+function copyApproved(){
+  var a=[];
+  for(var i=0;i<items.length;i++){ var it=items[i]; if(it.status==="pending" && lsGet("approve_"+it.id)){ a.push({id:it.id,title:it.ebayTitle,newUrl:it.newUrl,newPrice:it.newPrice}); } }
+  var txt = JSON.stringify(a,null,2);
+  if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(function(){ alert(a.length?a.length+"件の出品許可済みをコピーしました。":"出品許可済みの商品はありません。"); }, function(){ alert(txt); }); }
+  else { alert(txt); }
+}
+
+render();
+</script>
+</body>
+</html>
+                                                                                                                                                           
