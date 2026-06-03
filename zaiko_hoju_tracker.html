@@ -5,41 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>在庫補充トラッカー</title>
 <style>
-  :root{--bg:#f5f6f8;--card:#fff;--line:#e3e6ea;--text:#1f2733;--muted:#6b7480;--blue:#2f6fed;--green:#1aa260;--amber:#e08a00;--amber-bg:#fff7e6;--red:#d23f3f;--gray-bg:#f0f1f3;}
+  :root{--bg:#f5f6f8;--card:#fff;--line:#e3e6ea;--text:#1f2733;--muted:#6b7480;--blue:#2f6fed;--green:#1aa260;--amber:#e08a00;--amber-bg:#fff7e6;--red:#d23f3f;--gray-bg:#f0f1f3;--ready-bg:#e8f0fe;}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
-  .wrap{max-width:1240px;margin:0 auto;padding:24px 18px 60px}
+  .wrap{max-width:1320px;margin:0 auto;padding:24px 18px 60px}
   h1{font-size:20px;margin:0 0 4px}
   .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
   .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:120px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:110px}
   .stat .n{font-size:22px;font-weight:700}
   .stat .l{font-size:12px;color:var(--muted)}
-  .stat.amber .n{color:var(--amber)}.stat.green .n{color:var(--green)}.stat.gray .n{color:var(--muted)}
+  .stat.amber .n{color:var(--amber)}.stat.green .n{color:var(--green)}.stat.gray .n{color:var(--muted)}.stat.blue .n{color:var(--blue)}
   .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
   .btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+  .sortbox{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .sortbox select{font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text);cursor:pointer}
   .legend{font-size:12px;color:var(--muted);margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
   .legend span{display:inline-flex;align-items:center;gap:5px}
   .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-  .dot.g{background:var(--green)}.dot.a{background:var(--amber)}.dot.s{background:#aab1ba}
+  .dot.g{background:var(--green)}.dot.b{background:var(--blue)}.dot.a{background:var(--amber)}.dot.s{background:#aab1ba}
   .tablecard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   table{width:100%;border-collapse:collapse}
-  th,td{padding:12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  th,td{padding:11px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
   th{background:#fafbfc;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
   tr:last-child td{border-bottom:none}
   tr.pending{background:var(--amber-bg)}
   tr.skipped{background:var(--gray-bg);color:var(--muted)}
+  tr.ready{background:var(--ready-bg)}
   .title{font-weight:600;max-width:260px}
   .title a{color:var(--blue);text-decoration:none}
   .meta{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
   a.src{color:var(--blue);text-decoration:none;font-size:12px;word-break:break-all}
   .price{font-weight:600;white-space:nowrap}
   .yen{font-weight:700}
+  .cat{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:#eef1f4;color:var(--muted);white-space:nowrap}
+  .cat.card{background:#fdeede;color:#b5651d}
+  .cat.fig{background:#e7eefe;color:#2f5fed}
+  .when{font-size:12px;color:var(--muted);white-space:nowrap}
   .pct{font-size:12px;display:inline-block;margin-top:2px;padding:1px 7px;border-radius:10px;background:#eef1f4;color:var(--muted)}
   .pct.over{background:#fde7e7;color:var(--red);font-weight:700}
+  .pct.higher{background:#e3f5ec;color:var(--green);font-weight:700}
   .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
   .badge.listed{background:#e3f5ec;color:var(--green)}
+  .badge.ready{background:#e2ecfd;color:var(--blue)}
   .badge.pending{background:#fff0d6;color:var(--amber)}
   .badge.skipped{background:#e9ebee;color:var(--muted)}
   .chk input{width:18px;height:18px;cursor:pointer;accent-color:var(--blue)}
@@ -57,53 +66,104 @@
   <div class="toolbar">
     <button class="btn" onclick="copyApproved()">承認済み（出品可）をコピー</button>
     <button class="btn ghost" onclick="location.reload()">再読み込み</button>
+    <div class="sortbox">
+      <label for="sortSel">並び替え:</label>
+      <select id="sortSel" onchange="render()">
+        <option value="default">既定（登録順）</option>
+        <option value="date_desc">作業日時（新しい順）</option>
+        <option value="date_asc">作業日時（古い順）</option>
+        <option value="category">カテゴリ</option>
+        <option value="confirmed">確認済みを上に</option>
+        <option value="unconfirmed">未確認を上に</option>
+        <option value="approve">出品許可を上に</option>
+      </select>
+    </div>
     <div class="legend">
       <span><i class="dot g"></i>出品済み</span>
-      <span><i class="dot a"></i>要承認（価格差10%以上）</span>
-      <span><i class="dot s"></i>スキップ（仕入先なし）</span>
+      <span><i class="dot b"></i>自動出品OK</span>
+      <span><i class="dot a"></i>要承認（新が10%以上安い）</span>
+      <span><i class="dot s"></i>スキップ</span>
     </div>
   </div>
   <div class="tablecard">
     <table>
       <thead><tr>
         <th>商品（eBayページ）</th>
+        <th>カテゴリ</th>
+        <th>作業日時</th>
         <th>元の仕入先 / 価格</th>
         <th>新しい仕入先 / 価格</th>
         <th>価格差（元−新）</th>
         <th>ステータス</th>
         <th>確認済み</th>
-        <th>出品許可<br>※10%以上のみ</th>
+        <th>出品許可<br>※新が10%安い時のみ</th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <div class="foot">ルール：価格差（元の仕入価格−新しい仕入価格）が元価格の10%以上の場合は自動出品せず「要承認」。出品許可にチェックが入った商品だけ出品します。新しい仕入先が見つからない商品はスキップ。通常（10%未満）は出品後に記録し、確認済みでレビュー完了とします。</div>
+  <div class="foot">ルール：新しい仕入先が<b>元より高い／差が小さい</b>場合は自動出品OK。新しい仕入先が<b>元より10%以上安い</b>場合のみ「要承認」とし、出品許可にチェックが入った商品だけ出品します。判定式 pct=(元−新)/元×100 が +10以上で要承認。新しい仕入先が見つからない商品はスキップ。確認済みでレビュー完了とします。</div>
 </div>
 
 <script>
 var items = [
-  {id:"cinderella-20260603", ebayTitle:"Japan Tokyo Disney Store Cinderella Pink Dress Figure CREATE YOUR DREAM 2025", ebayUrl:"", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m61190444552", origPrice:15000, newSite:"ヤフオク", newUrl:"https://auctions.yahoo.co.jp/jp/auction/k1177483858", newPrice:13500, status:"listed", note:"価格差10.0%（しきい値ちょうど）。本ルール導入前に出品済み。"},
-  {id:"yugioh-exosister-20260603", ebayTitle:"遊戯王 デラックスデュエルセット エクソシスター 未開封", ebayUrl:"https://www.ebay.com/itm/306950260590", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m78818568338", origPrice:23333, newSite:"ラクマ", newUrl:"https://item.fril.jp/a466bf12adc0121ad72e4b582b2fecd8", newPrice:33000, status:"pending", note:"新品。在庫ありはラクマのycsj限定セット¥33,000のみ＝元より約41%高。メルカリ/ヤフオク/PayPay即決は在庫なし。"},
-  {id:"railgun-misaka-20260603", ebayTitle:"A Certain Scientific Railgun Mikoto Misaka 65cm 1/2.5 Figure Soft Bust KADOKAWA", ebayUrl:"https://www.ebay.com/itm/306950193171", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m22089574880", origPrice:null, newSite:null, newUrl:"", newPrice:null, status:"skipped", note:"Used。元出品は削除済みで元価格不明。即決の在庫なし。ヤフオクにオークション出品(65cm 1/2.5 未使用 ¥209,800)はあるが即決対象外のためスキップ。"},
-  {id:"fullscale-char-stahlhelm-20260603", ebayTitle:"FULL SCALE WORKS Display Gundam 1/1 Char Aznable Stahlhelm Figure Megahouse", ebayUrl:"https://www.ebay.com/itm/306931508363", origSite:"PayPayフリマ", origUrl:"https://paypayfleamarket.yahoo.co.jp/item/z601242346", origPrice:45000, newSite:"ラクマ", newUrl:"https://item.fril.jp/96a216345bd3ec5c6d0793949eb7f6a2", newPrice:66000, status:"pending", note:"Used。在庫ありはラクマのメガハウス1/1シュタールヘルム¥66,000＝元より約47%高。メルカリは3点セット(¥82,500)のみで単品一致なし。"}
+  {id:"cinderella-20260603", category:"フィギュア", workDate:"2026-06-03", ebayTitle:"Japan Tokyo Disney Store Cinderella Pink Dress Figure CREATE YOUR DREAM 2025", ebayUrl:"", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m61190444552", origPrice:15000, newSite:"ヤフオク", newUrl:"https://auctions.yahoo.co.jp/jp/auction/k1177483858", newPrice:13500, status:"listed", note:"出品済み（実出品 SKU hashimoto_AI在庫補充、Price $139）。新が元より10.0%安（しきい値ちょうど）だが本ルール導入前に出品済み。"},
+  {id:"yugioh-exosister-20260603", category:"トレーディングカード", workDate:"", ebayTitle:"遊戯王 デラックスデュエルセット エクソシスター 未開封", ebayUrl:"https://www.ebay.com/itm/306950260590", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m78818568338", origPrice:23333, newSite:"ラクマ", newUrl:"https://item.fril.jp/a466bf12adc0121ad72e4b582b2fecd8", newPrice:33000, status:"ready", note:"新品。在庫ありはラクマのycsj限定セット¥33,000のみ＝元より約41%高。新が高いため自動出品OK（ユーザー承認済み・出品作業待ち）。"},
+  {id:"railgun-misaka-20260603", category:"フィギュア", workDate:"", ebayTitle:"A Certain Scientific Railgun Mikoto Misaka 65cm 1/2.5 Figure Soft Bust KADOKAWA", ebayUrl:"https://www.ebay.com/itm/306950193171", origSite:"メルカリ", origUrl:"https://jp.mercari.com/item/m22089574880", origPrice:null, newSite:null, newUrl:"", newPrice:null, status:"skipped", note:"Used。元出品は削除済みで元価格不明。即決の在庫なし。ヤフオクにオークション出品(65cm 1/2.5 未使用 ¥209,800)はあるが即決対象外のためスキップ。"},
+  {id:"fullscale-char-stahlhelm-20260603", category:"フィギュア", workDate:"", ebayTitle:"FULL SCALE WORKS Display Gundam 1/1 Char Aznable Stahlhelm Figure Megahouse", ebayUrl:"https://www.ebay.com/itm/306931508363", origSite:"PayPayフリマ", origUrl:"https://paypayfleamarket.yahoo.co.jp/item/z601242346", origPrice:45000, newSite:"ラクマ", newUrl:"https://item.fril.jp/96a216345bd3ec5c6d0793949eb7f6a2", newPrice:66000, status:"ready", note:"Used。在庫ありはラクマのメガハウス1/1シュタールヘルム¥66,000＝元より約47%高。新が高いため自動出品OK（ユーザー承認済み・出品作業待ち）。"}
 ];
 
 function yen(n){ return (n==null) ? "—" : "¥" + Number(n).toLocaleString("ja-JP"); }
 function lsGet(k){ return localStorage.getItem(k)==="1"; }
 function lsSet(k,v){ if(v){ localStorage.setItem(k,"1"); } else { localStorage.removeItem(k); } }
 function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":s); return d.innerHTML; }
+function catClass(c){ return c==="トレーディングカード" ? "card" : (c ? "fig" : ""); }
+
+function cheaperPct(it){
+  if(it.newPrice==null || it.origPrice==null || !it.origPrice) return null;
+  return (it.origPrice - it.newPrice) / it.origPrice * 100;
+}
+
+function isConfirmed(it){ return lsGet("confirm_"+it.id); }
+function isApproved(it){ return lsGet("approve_"+it.id); }
+
+function sortedItems(){
+  var arr = items.slice();
+  var mode = document.getElementById("sortSel").value;
+  function dateVal(it){ return it.workDate ? it.workDate : ""; }
+  if(mode==="date_desc"){
+    arr.sort(function(a,b){ var x=dateVal(a),y=dateVal(b); if(x===y) return 0; if(!x) return 1; if(!y) return -1; return x<y?1:-1; });
+  } else if(mode==="date_asc"){
+    arr.sort(function(a,b){ var x=dateVal(a),y=dateVal(b); if(x===y) return 0; if(!x) return 1; if(!y) return -1; return x<y?-1:1; });
+  } else if(mode==="category"){
+    arr.sort(function(a,b){ if(a.category===b.category) return 0; return a.category<b.category?-1:1; });
+  } else if(mode==="confirmed"){
+    arr.sort(function(a,b){ return (isConfirmed(b)?1:0)-(isConfirmed(a)?1:0); });
+  } else if(mode==="unconfirmed"){
+    arr.sort(function(a,b){
+      var aa = a.status==="skipped" ? 2 : (isConfirmed(a)?1:0);
+      var bb = b.status==="skipped" ? 2 : (isConfirmed(b)?1:0);
+      return aa-bb;
+    });
+  } else if(mode==="approve"){
+    arr.sort(function(a,b){ return (isApproved(b)?1:0)-(isApproved(a)?1:0); });
+  }
+  return arr;
+}
 
 function render(){
   var tb = document.getElementById("rows");
   tb.innerHTML = "";
-  var nL=0,nP=0,nS=0;
+  var nL=0,nR=0,nP=0,nS=0;
   for(var i=0;i<items.length;i++){
-    var it = items[i];
-    var hasDiff = (it.newPrice!=null && it.origPrice!=null);
-    var diff = hasDiff ? (it.origPrice - it.newPrice) : null;
-    var pct = hasDiff && it.origPrice ? (diff/it.origPrice*100) : null;
-    var over = (pct!=null && Math.abs(pct)>=10);
-    if(it.status==="listed") nL++; else if(it.status==="pending") nP++; else nS++;
+    var s=items[i].status;
+    if(s==="listed") nL++; else if(s==="ready") nR++; else if(s==="pending") nP++; else nS++;
+  }
+  var list = sortedItems();
+  for(var i=0;i<list.length;i++){
+    var it = list[i];
+    var pct = cheaperPct(it);
+    var over = (pct!=null && pct>=10);
+    var diff = (it.newPrice!=null && it.origPrice!=null) ? (it.origPrice - it.newPrice) : null;
 
     var tr = document.createElement("tr");
     tr.className = it.status;
@@ -111,6 +171,9 @@ function render(){
     var titleH = it.ebayUrl ? '<a href="'+it.ebayUrl+'" target="_blank" rel="noopener">'+esc(it.ebayTitle)+'</a>'
                             : esc(it.ebayTitle)+'<div class="meta">eBayページURL未登録</div>';
     if(it.note){ titleH += '<div class="note">'+esc(it.note)+'</div>'; }
+
+    var catH = it.category ? '<span class="cat '+catClass(it.category)+'">'+esc(it.category)+'</span>' : '<span class="muted">—</span>';
+    var whenH = it.workDate ? '<span class="when">'+esc(it.workDate)+'</span>' : '<span class="muted">—</span>';
 
     var origH = '<div class="price">'+yen(it.origPrice)+'</div>';
     origH += (it.origUrl && it.origUrl!=="#") ? '<a class="src" href="'+it.origUrl+'" target="_blank" rel="noopener">'+esc(it.origSite)+'</a>'
@@ -124,9 +187,15 @@ function render(){
     } else { newH = '<span class="muted">見つからず</span>'; }
 
     var diffH = '<span class="muted">—</span>';
-    if(diff!=null){ diffH = '<div><span class="yen">'+yen(diff)+'</span><br><span class="pct'+(over?' over':'')+'">'+pct.toFixed(1)+'%'+(over?' ⚠':'')+'</span></div>'; }
+    if(diff!=null && pct!=null){
+      var pctH, cls;
+      if(pct>=0){ cls = over ? 'pct over' : 'pct'; pctH = '新が'+pct.toFixed(1)+'%安'+(over?' ⚠':''); }
+      else { cls = 'pct higher'; pctH = '新が'+(-pct).toFixed(1)+'%高'; }
+      diffH = '<div><span class="yen">'+yen(diff)+'</span><br><span class="'+cls+'">'+pctH+'</span></div>';
+    }
 
     var badgeH = it.status==="listed" ? '<span class="badge listed">出品済み</span>'
+               : it.status==="ready" ? '<span class="badge ready">自動出品OK</span>'
                : it.status==="pending" ? '<span class="badge pending">要承認</span>'
                : '<span class="badge skipped">スキップ</span>';
 
@@ -142,13 +211,14 @@ function render(){
       apH = '<input type="checkbox" '+(lsGet(ak)?"checked":"")+' onchange="onApprove(this,\''+ak+'\')"><span class="approve-on" style="display:'+(lsGet(ak)?"inline":"none")+'">→出品可</span>';
     }
 
-    tr.innerHTML = '<td class="title">'+titleH+'</td><td>'+origH+'</td><td>'+newH+'</td><td>'+diffH+'</td><td>'+badgeH+'</td><td>'+confH+'</td><td>'+apH+'</td>';
+    tr.innerHTML = '<td class="title">'+titleH+'</td><td>'+catH+'</td><td>'+whenH+'</td><td>'+origH+'</td><td>'+newH+'</td><td>'+diffH+'</td><td>'+badgeH+'</td><td>'+confH+'</td><td>'+apH+'</td>';
     tb.appendChild(tr);
   }
   document.getElementById("stats").innerHTML =
     '<div class="stat"><div class="n">'+items.length+'</div><div class="l">総件数</div></div>'+
     '<div class="stat green"><div class="n">'+nL+'</div><div class="l">出品済み</div></div>'+
-    '<div class="stat amber"><div class="n">'+nP+'</div><div class="l">要承認（10%以上）</div></div>'+
+    '<div class="stat blue"><div class="n">'+nR+'</div><div class="l">自動出品OK</div></div>'+
+    '<div class="stat amber"><div class="n">'+nP+'</div><div class="l">要承認</div></div>'+
     '<div class="stat gray"><div class="n">'+nS+'</div><div class="l">スキップ</div></div>';
 }
 
@@ -166,4 +236,3 @@ render();
 </script>
 </body>
 </html>
-                                                                                                                                                           
