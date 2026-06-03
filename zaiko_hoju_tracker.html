@@ -109,28 +109,38 @@ const items = [
     note: "価格差10.0%（しきい値ちょうど）。本ルール導入前に出品済み。",
     sample: false
   },
-  // ↓↓↓ 動作確認用サンプル（不要なら削除可） ↓↓↓
   {
-    id: "sample-pending",
-    ebayTitle: "（サンプル）価格差が大きいケース",
-    ebayUrl: "",
-    origSite: "メルカリ", origUrl: "#", origPrice: 20000,
-    newSite:  "ラクマ",   newUrl: "#", newPrice: 15000,
+    id: "yugioh-exosister-20260603",
+    ebayTitle: "遊戯王 デラックスデュエルセット エクソシスター 未開封 (eBay: Deluxe Duel Set Exosister)",
+    ebayUrl: "https://www.ebay.com/itm/306950260590",
+    origSite: "メルカリ", origUrl: "https://jp.mercari.com/item/m78818568338", origPrice: 23333,
+    newSite:  "ラクマ",   newUrl: "https://item.fril.jp/a466bf12adc0121ad72e4b582b2fecd8", newPrice: 33000,
     status: "pending",
-    date: "",
-    note: "価格差25%のため自動出品せず。出品許可待ち。",
-    sample: true
+    date: "2026-06-03",
+    note: "新品。在庫ありはラクマのエクソシスターデュエルセット(ycsj限定)¥33,000のみ＝元より約41%高。メルカリ/ヤフオク/PayPay即決は在庫なし。",
+    sample: false
   },
   {
-    id: "sample-skipped",
-    ebayTitle: "（サンプル）仕入先が見つからないケース",
-    ebayUrl: "",
-    origSite: "メルカリ", origUrl: "#", origPrice: 8000,
+    id: "railgun-misaka-20260603",
+    ebayTitle: "A Certain Scientific Railgun Mikoto Misaka 65cm 1/2.5 Figure Soft Bust KADOKAWA",
+    ebayUrl: "https://www.ebay.com/itm/306950193171",
+    origSite: "メルカリ", origUrl: "https://jp.mercari.com/item/m22089574880", origPrice: null,
     newSite:  null, newUrl: "", newPrice: null,
     status: "skipped",
-    date: "",
-    note: "6サイト検索で在庫ありの同一商品が見つからずスキップ。",
-    sample: true
+    date: "2026-06-03",
+    note: "Used。元出品は削除済みで元価格不明。即決の在庫なし。ヤフオクにオークション出品(全高約65cm 1/2.5 未使用 ¥209,800)はあるが即決対象外のためスキップ。",
+    sample: false
+  },
+  {
+    id: "fullscale-char-stahlhelm-20260603",
+    ebayTitle: "FULL SCALE WORKS Display Gundam 1/1 Char Aznable Stahlhelm Figure Megahouse",
+    ebayUrl: "https://www.ebay.com/itm/306931508363",
+    origSite: "PayPayフリマ", origUrl: "https://paypayfleamarket.yahoo.co.jp/item/z601242346", origPrice: 45000,
+    newSite:  "ラクマ", newUrl: "https://item.fril.jp/96a216345bd3ec5c6d0793949eb7f6a2", newPrice: 66000,
+    status: "pending",
+    date: "2026-06-03",
+    note: "Used。在庫ありはラクマのメガハウス1/1シュタールヘルム¥66,000＝元より約47%高。メルカリは3点セット(¥82,500)のみで単品一致なし。",
+    sample: false
   }
 ];
 
@@ -152,7 +162,7 @@ function render(){
 
   items.forEach(it=>{
     const di = diffInfo(it);
-    const over = di.pct!=null && di.pct >= 10;
+    const over = di.pct!=null && Math.abs(di.pct) >= 10;
     if(it.status==="listed") nListed++;
     else if(it.status==="pending") nPending++;
     else if(it.status==="skipped") nSkipped++;
@@ -207,34 +217,4 @@ function render(){
     }
 
     tr.innerHTML = `
-      <td class="title">${titleHtml}${sampleTag}${it.note?`<div class="note">${it.note}</div>`:""}</td>
-      <td>${origCell}</td>
-      <td>${newCell}</td>
-      <td>${diffCell}</td>
-      <td>${badge}</td>
-      <td>${confirmCell}</td>
-      <td>${approveCell}</td>`;
-    tb.appendChild(tr);
-  });
-
-  document.getElementById("stats").innerHTML = `
-    <div class="stat"><div class="n">${items.length}</div><div class="l">総件数</div></div>
-    <div class="stat green"><div class="n">${nListed}</div><div class="l">出品済み</div></div>
-    <div class="stat amber"><div class="n">${nPending}</div><div class="l">要承認（10%以上）</div></div>
-    <div class="stat gray"><div class="n">${nSkipped}</div><div class="l">スキップ</div></div>`;
-}
-
-function copyApproved(){
-  const approved = items
-    .filter(it => it.status==="pending" && lsGet("approve_"+it.id))
-    .map(it => ({id:it.id, title:it.ebayTitle, newUrl:it.newUrl, newPrice:it.newPrice}));
-  const txt = JSON.stringify(approved, null, 2);
-  navigator.clipboard.writeText(txt).then(()=>{
-    alert(approved.length ? approved.length+"件の出品許可済みをコピーしました。" : "出品許可済みの商品はありません。");
-  }, ()=> alert(txt));
-}
-
-render();
-</script>
-</body>
-</html>
+      <td class="title">${titleHtml}${sampleTag}${it.note?`<div class="note">${it.note}
