@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在庫補充トラッカー</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e3e6ea; --text:#1f2733; --muted:#6b7480;
+    --blue:#2f6fed; --green:#1aa260; --amber:#e08a00; --amber-bg:#fff7e6; --red:#d23f3f;
+    --gray-bg:#f0f1f3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+  .wrap{max-width:1240px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:120px}
+  .stat .n{font-size:22px;font-weight:700}
+  .stat .l{font-size:12px;color:var(--muted)}
+  .stat.amber .n{color:var(--amber)} .stat.green .n{color:var(--green)} .stat.gray .n{color:var(--muted)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+  .legend{font-size:12px;color:var(--muted);margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .dot.g{background:var(--green)} .dot.a{background:var(--amber)} .dot.s{background:#aab1ba}
+  .tablecard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:12px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  th{background:#fafbfc;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  tr.pending{background:var(--amber-bg)}
+  tr.skipped{background:var(--gray-bg);color:var(--muted)}
+  .title{font-weight:600;max-width:260px}
+  .title a{color:var(--blue);text-decoration:none}
+  .title .meta{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+  a.src{color:var(--blue);text-decoration:none;font-size:12px;word-break:break-all}
+  .price{font-weight:600;white-space:nowrap}
+  .diff .yen{font-weight:700}
+  .diff .pct{font-size:12px;display:inline-block;margin-top:2px;padding:1px 7px;border-radius:10px;background:#eef1f4;color:var(--muted)}
+  .diff .pct.over{background:#fde7e7;color:var(--red);font-weight:700}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .badge.listed{background:#e3f5ec;color:var(--green)}
+  .badge.pending{background:#fff0d6;color:var(--amber)}
+  .badge.skipped{background:#e9ebee;color:var(--muted)}
+  .chk{display:flex;align-items:center;gap:6px}
+  .chk input{width:18px;height:18px;cursor:pointer;accent-color:var(--blue)}
+  .approve-on{color:var(--green);font-size:11px;font-weight:700}
+  .note{font-size:11px;color:var(--muted);margin-top:6px}
+  .muted{color:var(--muted)}
+  .foot{margin-top:14px;font-size:12px;color:var(--muted)}
+  .sample-tag{font-size:10px;background:#eceff3;color:var(--muted);border-radius:4px;padding:1px 5px;margin-left:6px}
+  @media(max-width:760px){ th:nth-child(2),td:nth-child(2){display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>在庫補充トラッカー</h1>
+  <div class="sub">在庫切れ→新仕入先への差し替え内容を確認するための一覧。状態のチェックはこのブラウザに保存されます（再訪時も保持）。</div>
+
+  <div class="cards" id="stats"></div>
+
+  <div class="toolbar">
+    <button class="btn" onclick="copyApproved()">承認済み（出品可）をコピー</button>
+    <button class="btn ghost" onclick="location.reload()">再読み込み</button>
+    <div class="legend">
+      <span><i class="dot g"></i>出品済み</span>
+      <span><i class="dot a"></i>要承認（価格差10%以上）</span>
+      <span><i class="dot s"></i>スキップ（仕入先なし）</span>
+    </div>
+  </div>
+
+  <div class="tablecard">
+    <table>
+      <thead>
+        <tr>
+          <th>商品（eBayページ）</th>
+          <th>元の仕入先 / 価格</th>
+          <th>新しい仕入先 / 価格</th>
+          <th>価格差（元−新）</th>
+          <th>ステータス</th>
+          <th>確認済み</th>
+          <th>出品許可<br><span style="font-weight:400">※10%以上のみ</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    ルール：価格差（元の仕入価格−新しい仕入価格）が<b>元価格の10%以上</b>の場合は自動出品せず「要承認」。<b>出品許可</b>にチェックが入った商品だけ出品します。新しい仕入先が見つからない商品は<b>スキップ</b>。通常（10%未満）の商品は出品後にこの一覧へ記録され、<b>確認済み</b>でレビュー完了とします。
+  </div>
+</div>
+
+<script>
+// ===== データ（在庫補充の記録）。自動化が1件ずつ追記していく想定 =====
+const items = [
+  {
+    id: "cinderella-20260603",
+    ebayTitle: "Japan Tokyo Disney Store Cinderella Pink Dress Figure CREATE YOUR DREAM 2025",
+    ebayUrl: "",                         // ← eBay商品ページURL（未取得。⑧で取得可）
+    origSite: "メルカリ", origUrl: "https://jp.mercari.com/item/m61190444552", origPrice: 15000,
+    newSite:  "ヤフオク", newUrl:  "https://auctions.yahoo.co.jp/jp/auction/k1177483858", newPrice: 13500,
+    status: "listed",                    // listed / pending / skipped
+    date: "2026-06-03",
+    note: "価格差10.0%（しきい値ちょうど）。本ルール導入前に出品済み。",
+    sample: false
+  },
+  // ↓↓↓ 動作確認用サンプル（不要なら削除可） ↓↓↓
+  {
+    id: "sample-pending",
+    ebayTitle: "（サンプル）価格差が大きいケース",
+    ebayUrl: "",
+    origSite: "メルカリ", origUrl: "#", origPrice: 20000,
+    newSite:  "ラクマ",   newUrl: "#", newPrice: 15000,
+    status: "pending",
+    date: "",
+    note: "価格差25%のため自動出品せず。出品許可待ち。",
+    sample: true
+  },
+  {
+    id: "sample-skipped",
+    ebayTitle: "（サンプル）仕入先が見つからないケース",
+    ebayUrl: "",
+    origSite: "メルカリ", origUrl: "#", origPrice: 8000,
+    newSite:  null, newUrl: "", newPrice: null,
+    status: "skipped",
+    date: "",
+    note: "6サイト検索で在庫ありの同一商品が見つからずスキップ。",
+    sample: true
+  }
+];
+
+const yen = n => (n==null ? "—" : "¥" + Number(n).toLocaleString("ja-JP"));
+const lsGet = (k) => localStorage.getItem(k) === "1";
+const lsSet = (k,v) => v ? localStorage.setItem(k,"1") : localStorage.removeItem(k);
+
+function diffInfo(it){
+  if(it.newPrice==null || it.origPrice==null) return {yenDiff:null, pct:null};
+  const d = it.origPrice - it.newPrice;
+  const pct = it.origPrice ? (d / it.origPrice * 100) : 0;
+  return {yenDiff:d, pct:pct};
+}
+
+function render(){
+  const tb = document.getElementById("rows");
+  tb.innerHTML = "";
+  let nListed=0, nPending=0, nSkipped=0;
+
+  items.forEach(it=>{
+    const di = diffInfo(it);
+    const over = di.pct!=null && di.pct >= 10;
+    if(it.status==="listed") nListed++;
+    else if(it.status==="pending") nPending++;
+    else if(it.status==="skipped") nSkipped++;
+
+    const tr = document.createElement("tr");
+    tr.className = it.status;
+
+    // 商品
+    const titleHtml = it.ebayUrl
+      ? `<a href="${it.ebayUrl}" target="_blank" rel="noopener">${it.ebayTitle}</a>`
+      : `${it.ebayTitle}<div class="meta">eBayページURL未登録</div>`;
+    const sampleTag = it.sample ? `<span class="sample-tag">サンプル</span>` : "";
+
+    // 元 / 新 仕入先
+    const origCell = it.origUrl && it.origUrl!=="#"
+      ? `<div class="price">${yen(it.origPrice)}</div><a class="src" href="${it.origUrl}" target="_blank" rel="noopener">${it.origSite}</a>`
+      : `<div class="price">${yen(it.origPrice)}</div><span class="muted">${it.origSite||"—"}</span>`;
+    const newCell = it.newSite
+      ? (it.newUrl && it.newUrl!=="#"
+          ? `<div class="price">${yen(it.newPrice)}</div><a class="src" href="${it.newUrl}" target="_blank" rel="noopener">${it.newSite}</a>`
+          : `<div class="price">${yen(it.newPrice)}</div><span class="muted">${it.newSite}</span>`)
+      : `<span class="muted">見つからず</span>`;
+
+    // 価格差
+    let diffCell = `<span class="muted">—</span>`;
+    if(di.yenDiff!=null){
+      diffCell = `<div class="diff"><span class="yen">${yen(di.yenDiff)}</span><br>
+        <span class="pct ${over?'over':''}">${di.pct.toFixed(1)}%${over?' ⚠':''}</span></div>`;
+    }
+
+    // ステータス
+    const badge = it.status==="listed" ? `<span class="badge listed">出品済み</span>`
+               : it.status==="pending" ? `<span class="badge pending">要承認</span>`
+               : `<span class="badge skipped">スキップ</span>`;
+
+    // 確認済み
+    let confirmCell = `<span class="muted">—</span>`;
+    if(it.status!=="skipped"){
+      const ck = "confirm_"+it.id;
+      confirmCell = `<label class="chk"><input type="checkbox" ${lsGet(ck)?"checked":""}
+         onchange="lsSet('${ck}', this.checked)"></label>`;
+    }
+
+    // 出品許可（pending のみ）
+    let approveCell = `<span class="muted">—</span>`;
+    if(it.status==="pending"){
+      const ak = "approve_"+it.id;
+      const on = lsGet(ak);
+      approveCell = `<label class="chk"><input type="checkbox" ${on?"checked":""}
+         onchange="lsSet('${ak}', this.checked); this.nextElementSibling.style.display=this.checked?'inline':'none'">
+         <span class="approve-on" style="display:${on?'inline':'none'}">→出品可</span></label>`;
+    }
+
+    tr.innerHTML = `
+      <td class="title">${titleHtml}${sampleTag}${it.note?`<div class="note">${it.note}</div>`:""}</td>
+      <td>${origCell}</td>
+      <td>${newCell}</td>
+      <td>${diffCell}</td>
+      <td>${badge}</td>
+      <td>${confirmCell}</td>
+      <td>${approveCell}</td>`;
+    tb.appendChild(tr);
+  });
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="n">${items.length}</div><div class="l">総件数</div></div>
+    <div class="stat green"><div class="n">${nListed}</div><div class="l">出品済み</div></div>
+    <div class="stat amber"><div class="n">${nPending}</div><div class="l">要承認（10%以上）</div></div>
+    <div class="stat gray"><div class="n">${nSkipped}</div><div class="l">スキップ</div></div>`;
+}
+
+function copyApproved(){
+  const approved = items
+    .filter(it => it.status==="pending" && lsGet("approve_"+it.id))
+    .map(it => ({id:it.id, title:it.ebayTitle, newUrl:it.newUrl, newPrice:it.newPrice}));
+  const txt = JSON.stringify(approved, null, 2);
+  navigator.clipboard.writeText(txt).then(()=>{
+    alert(approved.length ? approved.length+"件の出品許可済みをコピーしました。" : "出品許可済みの商品はありません。");
+  }, ()=> alert(txt));
+}
+
+render();
+</script>
+</body>
+</html>
